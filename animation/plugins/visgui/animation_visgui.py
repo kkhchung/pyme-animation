@@ -47,7 +47,7 @@ class VideoPanel(DockedPanel):
         wx.Panel.__init__(self, parent_panel, **kwargs)
 
         
-#        mProfile.profileOn(["animation_visgui.py", 'views.py'])
+#        mProfile.profileOn(["animation_visgui.py"])
         self.snapshots = list()
         self.parent_panel = parent_panel
         vertical_sizer = wx.BoxSizer(wx.VERTICAL)
@@ -231,6 +231,7 @@ class VideoPanel(DockedPanel):
 #            duration = 3.0
             view = self.get_canvas().get_view(vec_id)
             video_view = VideoView.from_view(view)#, duration, )
+#            video_view = VideoView.from_canvas(self.get_canvas(), vec_id)#, duration, )
             self.add_snapshot_to_list(video_view)
 
     def delete_snapshot(self, event):
@@ -268,14 +269,50 @@ class VideoPanel(DockedPanel):
 
     def run(self, event):
         self.play(False)
+        
+    def build_view_list(self, fps):
+        view_list = list()
+
+        current_view = self.snapshots[0]
+        for i, view in enumerate(self.snapshots):
+
+            if i==0:
+                t = [1.0]
+            else:
+                t = np.linspace(0, 1.0, (view.duration * fps)+1)
+                if view.interp_mode == VideoView.Interp_mode.LINEAR:
+                    pass
+                elif view.interp_mode == VideoView.Interp_mode.SQUARE:
+                    t = t*t
+                elif view.interp_mode == VideoView.Interp_mode.SQUARE_ROOT:
+                    t = np.sqrt(t)
+                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_A:
+                    t = t*t*(3 - 2*t)
+                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_B:
+                    t = t*t*t*(6*t*t - 15*t + 10)
+                
+            for j, ti in enumerate(t):
+
+                if np.isclose(ti, 0.0):
+                    continue
+                new_view = current_view.lerp(view, ti)
+                view_list.append(new_view)
+                
+            current_view = view
+        
+        return view_list
 
     def play(self, save):
         print('play clicked')
 #        from PYME.util import mProfile
 #        
 #        mProfile.profileOn(["animation_visgui.py", 'views.py'])
+        fps = 30.
+        if len(self.snapshots) == 0:
+            self.add_snapshot(None)
+        view_list = self.build_view_list(fps)
         
-        old_width, old_height = self.get_canvas().Size
+        self.old_width, self.old_height = self.get_canvas().Size
         width = self.width_text.GetValue()
         height = self.height_text.GetValue()
         try:
@@ -302,7 +339,7 @@ class VideoPanel(DockedPanel):
 #        height = 250
                 
         self.get_canvas().displayMode = '3D'
-        fps = 10.0
+#        fps = 10.0
         file_name = None
         
         if save:
@@ -329,102 +366,157 @@ class VideoPanel(DockedPanel):
             #if file_name and not file_name.endswith('.avi'):
             #    file_name = '{}.avi'.format(file_name)
 
-        f_no = 0
-
-#        print len(self.snapshots)           
-        if len(self.snapshots) == 0:
-            self.add_snapshot(None)
-            
-        current_view = self.snapshots[0]
-        for i, view in enumerate(self.snapshots):
-#            print('here')
-#            if current_view is None:
-#                current_view = view
+#        f_no = 0
+#
+###        print len(self.snapshots)           
+##        if len(self.snapshots) == 0:
+##            self.add_snapshot(None)
+#            
+#        current_view = self.snapshots[0]
+#        for i, view in enumerate(self.snapshots):
+##            print('here')
+##            if current_view is None:
+##                current_view = view
+##            else:
+##            t = np.arange(0, view.duration, 1./fps) / view.duration
+#            if i==0:
+#                t = [1.0]
 #            else:
-#            t = np.arange(0, view.duration, 1./fps) / view.duration
-            if i==0:
-                t = [1.0]
-            else:
-                t = np.linspace(0, 1.0, (view.duration * fps)+1)
-                if view.interp_mode == VideoView.Interp_mode.LINEAR:
-                    pass
-                elif view.interp_mode == VideoView.Interp_mode.SQUARE:
-                    t = t*t
-                elif view.interp_mode == VideoView.Interp_mode.SQUARE_ROOT:
-                    t = np.sqrt(t)
-                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_A:
-                    t = t*t*(3 - 2*t)
-                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_B:
-                    t = t*t*t*(6*t*t - 15*t + 10)
-#            print(t)
-                
-            for j, ti in enumerate(t):
-#                print('def')
-#                if i > 0 and j == 0: #skip first frame of 2nd snapshot to avoid repeated frames
+#                t = np.linspace(0, 1.0, (view.duration * fps)+1)
+#                if view.interp_mode == VideoView.Interp_mode.LINEAR:
+#                    pass
+#                elif view.interp_mode == VideoView.Interp_mode.SQUARE:
+#                    t = t*t
+#                elif view.interp_mode == VideoView.Interp_mode.SQUARE_ROOT:
+#                    t = np.sqrt(t)
+#                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_A:
+#                    t = t*t*(3 - 2*t)
+#                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_B:
+#                    t = t*t*t*(6*t*t - 15*t + 10)
+##            print(t)
+#                
+#            for j, ti in enumerate(t):
+##                print('def')
+##                if i > 0 and j == 0: #skip first frame of 2nd snapshot to avoid repeated frames
+##                    continue
+#                if np.isclose(ti, 0.0):
 #                    continue
-                if np.isclose(ti, 0.0):
-                    continue
-                new_view = current_view.lerp(view, ti)
-                self.get_canvas().set_view(new_view)
-#                self.get_canvas().view.scale *= 2
-#                self.get_canvas().Refresh()
-#                for callback in self.get_canvas().wantViewChangeNotification:
-#                    callback.Refresh()
-                
-                if save:
-                    snap = self.get_canvas().getIm()
-                    snap = (255*snap).astype('uint8').transpose(1, 0, 2)
-                    video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
-                    im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame%04d.jpg' % f_no))
-                else:
-#                    for callback in self.get_canvas().wantViewChangeNotification:
-#                        callback.Refresh()
-#                    self.get_canvas().OnDraw()
-#                    wx.CallLater(100.0, self.play, save)
-#                    yield
-#                    sleep(1.0/fps)
-                    wx.SafeYield()
-#                    wx.MilliSleep(1.0/fps*1e3)
-                f_no += 1
-                
-#                steps = int(round(view.duration * fps))
-##                print(view.clip_plane_orientation)
-##                print(current_view.clip_plane_orientation)
-#                difference_view = (view - current_view) / steps
-#                for step in range(0, steps):
-#                    new_view = current_view + difference_view * step
-#                    self.get_canvas().set_view(new_view.normalize_view())
-#                    if save:
-#                        snap = self.get_canvas().getIm()#.astype('uint8')
-#                        #print snap.shape, snap.dtype, snap.min(), snap.max()
-#                        snap = (255*snap).astype('uint8').transpose(1, 0, 2)
-#                        
-#                        #if snap.ndim == 3:
-#                        #    video.write(cv2.cvtColor(cv2.flip(snap.transpose(1, 0, 2), 0), cv2.COLOR_RGB2BGR))
-#                        #else:
-##                            video.write(cv2.flip(snap.transpose(1, 0, 2), 0))
-##                        print(snap.shape)
-##                        print(snap.dtype)
-#                        video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
-#                        im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame%04d.jpg' % f_no))
-#                        f_no += 1
-#                    else:
-#                        sleep(2.0/steps)
-#                        self.get_canvas().OnDraw()
-                
-            current_view = view
-            
-        print('total {} frames'.format(f_no))
+#                new_view = current_view.lerp(view, ti)
+#                self.get_canvas().set_view(new_view)
+##                self.get_canvas().view.scale *= 2
+##                self.get_canvas().Refresh()
+##                for callback in self.get_canvas().wantViewChangeNotification:
+##                    callback.Refresh()
+#                
+#                if save:
+#                    snap = self.get_canvas().getIm()
+#                    snap = (255*snap).astype('uint8').transpose(1, 0, 2)
+#                    video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
+#                    im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame%04d.jpg' % f_no))
+#                else:
+##                    for callback in self.get_canvas().wantViewChangeNotification:
+##                        callback.Refresh()
+##                    self.get_canvas().OnDraw()
+##                    wx.CallLater(100.0, self.play, save)
+##                    yield
+##                    sleep(1.0/fps)
+#                    wx.SafeYield()
+##                    wx.MilliSleep(1.0/fps*1e3)
+#                f_no += 1
+#                
+##                steps = int(round(view.duration * fps))
+###                print(view.clip_plane_orientation)
+###                print(current_view.clip_plane_orientation)
+##                difference_view = (view - current_view) / steps
+##                for step in range(0, steps):
+##                    new_view = current_view + difference_view * step
+##                    self.get_canvas().set_view(new_view.normalize_view())
+##                    if save:
+##                        snap = self.get_canvas().getIm()#.astype('uint8')
+##                        #print snap.shape, snap.dtype, snap.min(), snap.max()
+##                        snap = (255*snap).astype('uint8').transpose(1, 0, 2)
+##                        
+##                        #if snap.ndim == 3:
+##                        #    video.write(cv2.cvtColor(cv2.flip(snap.transpose(1, 0, 2), 0), cv2.COLOR_RGB2BGR))
+##                        #else:
+###                            video.write(cv2.flip(snap.transpose(1, 0, 2), 0))
+###                        print(snap.shape)
+###                        print(snap.dtype)
+##                        video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
+##                        im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame%04d.jpg' % f_no))
+##                        f_no += 1
+##                    else:
+##                        sleep(2.0/steps)
+##                        self.get_canvas().OnDraw()
+#                
+#            current_view = view
+        self.view_counter = 0
+        self.view_list = view_list
         
         if save:
-            video.release()
-            msg_text = 'Video generation finished'
-            msg = wx.MessageDialog(self, msg_text, 'Done', wx.OK | wx.ICON_INFORMATION)
-            msg.ShowModal()
-            msg.Destroy()
+            for i in range(len(self.view_list)):
+                self.get_canvas().set_view(self.view_list[i])
+                snap = self.get_canvas().getIm()
+                snap = (255*snap).astype('uint8').transpose(1, 0, 2)
+                video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
+                im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame_{0:06d}.jpg'.format(i)))
+                wx.SafeYield()
             
-        if old_width != self.get_canvas().Size[0] or old_height != self.get_canvas().Size[1]:
-            self.get_canvas().SetSize((old_width, old_height))
+            video.release()
+#            msg_text = 'Video generation finished'
+#            msg = wx.MessageDialog(self, msg_text, 'Done', wx.OK | wx.ICON_INFORMATION)
+#            msg.ShowModal()
+#            msg.Destroy()
+            
+            self.play_finish()
+        else:
+            self.timer = wx.Timer(self)
+    #        self.timer.Bind(wx.EVT_TIMER, self.play_views)
+            self.Bind(wx.EVT_TIMER, self.play_views, self.timer)
+            self.timer.Start(1e3/fps)
+            print('timer started')
+            
+#        for i, view in enumerate(view_list):
+#            self.get_canvas().set_view(view)
+#            
+#            if save:
+#                snap = self.get_canvas().getIm()
+#                snap = (255*snap).astype('uint8').transpose(1, 0, 2)
+#                video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
+#                im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame_{0:06d}.jpg'.format(i)))
+#            else:
+#                wx.SafeYield()
+#            
+#        print('total {} frames'.format(len(view_list)))
+        
+#        if old_width != self.get_canvas().Size[0] or old_height != self.get_canvas().Size[1]:
+#            self.get_canvas().SetSize((old_width, old_height))
+        
+#        if save:
+#            video.release()
+#            msg_text = 'Video generation finished'
+#            msg = wx.MessageDialog(self, msg_text, 'Done', wx.OK | wx.ICON_INFORMATION)
+#            msg.ShowModal()
+#            msg.Destroy()
+
+    def play_views(self, event):
+#        print('tick')
+        if self.view_counter < len(self.view_list):
+            self.get_canvas().set_view(self.view_list[self.view_counter])
+            self.view_counter += 1
+        else:
+            self.timer.Stop()
+            self.play_finish()
+            
+#    def save_views(self, event):
+#        if self.view_counter < len(self.view_list):
+            
+    def play_finish(self):
+        if self.old_width != self.get_canvas().Size[0] or self.old_height != self.get_canvas().Size[1]:
+            self.get_canvas().SetSize((self.old_width, self.old_height))
+        
+        print("Animation completed. Total {} frames".format(len(self.view_list)))
+
             
 #        mProfile.profileOff()
 #        mProfile.report()

@@ -40,7 +40,8 @@ def_clip_plane_orientation = np.array([1,0,0,0], 'f8')#np.eye(4,4,dtype='f')
 
 class View(PYME.LMVis.views.View):
     def __init__(self, view_id='id', vec_up=[0,1,0], vec_back = [0,0,1], vec_right = [1,0,0], translation= [0,0,0],
-                 scale=1, clipping = dummy_clipping, clip_plane_orientation=def_clip_plane_orientation, clip_plane_position=[0,0,0], **kwargs):
+                 scale=1, clipping = dummy_clipping, clip_plane_orientation=def_clip_plane_orientation, clip_plane_position=[0,0,0],
+                 **kwargs):
         """
         
         Parameters
