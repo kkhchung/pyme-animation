@@ -71,6 +71,9 @@ class VideoPanel(DockedPanel):
         
         self.displayed_snapshot_index = -1
         
+        # non-critical to save/load settings, fancy function to catch if live changes on layer
+        self.get_canvas().layers[0].on_trait_change(self.on_canvas_changed, 'alpha, point_size')
+        
     def create_snapshot_details(self, sizer):
 #        class EditableListCtrl(wx.ListCtrl, wx.lib.mixins.listctrl.TextEditMixin):
 #            def __init__(self, *args, **kwargs):                
@@ -226,14 +229,14 @@ class VideoPanel(DockedPanel):
         self.refill()
 
     def add_snapshot(self, event):
-        #vec_id = self.ask(self, message='Please enter view id')
-        vec_id = 'view_%d' % self.next_view_id
+        #view_id = self.ask(self, message='Please enter view id')
+        view_id = 'view_%d' % self.next_view_id
         self.next_view_id += 1
-        if vec_id:
+        if view_id:
 #            duration = 3.0
 #            view = self.get_canvas().get_view(vec_id)
 #            video_view = VideoView.from_view(view)#, duration, )
-            video_view = VideoView.from_canvas(self.get_canvas(), vec_id)#, duration, )
+            video_view = VideoView.from_canvas(self.get_canvas(), view_id)#, duration, )
             self.add_snapshot_to_list(video_view)
 
     def delete_snapshot(self, event):
@@ -552,7 +555,15 @@ class VideoPanel(DockedPanel):
         dlg.Destroy()
         self.refill()
         
-    
+    def on_canvas_changed(self, *args, **kwargs):
+#        print ('canvas changed')
+#        print (self.view_table.GetFirstSelected())
+#        print(self.get_canvas().layers[0].alpha)
+#        print(self.get_canvas().layers[0].point_size)
+        index = self.view_table.GetFirstSelected()
+        if index != -1:            
+            self.snapshots[index] = VideoView.from_canvas(self.get_canvas(), self.snapshots[index].view_id)
+            self.on_select_view(None)
 
     def on_select_view(self, event):
         index = self.view_table.GetFirstSelected()

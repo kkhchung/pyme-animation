@@ -41,7 +41,9 @@ def_clip_plane_orientation = np.array([1,0,0,0], 'f8')#np.eye(4,4,dtype='f')
 class View(PYME.LMVis.views.View):
     def __init__(self, view_id='id', vec_up=[0,1,0], vec_back = [0,0,1], vec_right = [1,0,0], translation= [0,0,0],
                  scale=1, clipping = dummy_clipping, clip_plane_orientation=def_clip_plane_orientation, clip_plane_position=[0,0,0],
-                 lut_draw=True, scale_bar=1000., background_color=[0,0,0], axes_visible=True, **kwargs):
+                 lut_draw=True, scale_bar=1000., background_color=[0,0,0], axes_visible=True,
+                 layer0_alpha=1.0, layer0_point_size=30.0,
+                 **kwargs):
         #avoid args catches for easier debugging
         """
         
@@ -80,6 +82,9 @@ class View(PYME.LMVis.views.View):
         self.scale_bar = float(scale_bar)
         self.background_color = np.array(background_color, dtype=np.float)
         self.axes_visible = bool(axes_visible)
+        
+        self.layer0_alpha = layer0_alpha
+        self.layer0_point_size = layer0_point_size
         
 #        self.update_rotation()
 #        self.dirty = False
@@ -224,6 +229,9 @@ class View(PYME.LMVis.views.View):
         ordered_dict['scale_bar'] = self.scale_bar
         ordered_dict['background_color'] = self.background_color.tolist()
         ordered_dict['axes_visible'] = self.axes_visible
+        
+        ordered_dict['layer0_alpha'] = self.layer0_alpha
+        ordered_dict['layer0_point_size'] = self.layer0_point_size
         return ordered_dict
 
 #    def __str__(self):
@@ -239,13 +247,23 @@ class View(PYME.LMVis.views.View):
 #        return cls.decode_json(view.to_json())
         
     def apply_canvas(self, canvas):
+        # This applies the save settings to the canvas. This probably needs updating when PYME updates.
+        
         canvas.set_view(self)
         canvas.LUTDraw = self.lut_draw
         canvas.scaleBarLength = self.scale_bar
         canvas.clear_colour = self.background_color
         canvas.AxesOverlayLayer.visible = self.axes_visible
+
+        # These are both 'fast' changes. Points are not recalculated. Works because render engine reads from them every frame.
+        if ~np.allclose(self.layer0_alpha, canvas.layers[0].get_colors()[0, 3]):
+            #crude check to see if alpha is different from current
+            canvas.layers[0]._colors[:, 3] = self.layer0_alpha
+        canvas.layers[0].trait_set(trait_change_notify=False, **{'point_size':self.layer0_point_size})
         
     def lerp(self, other, t):
+        # Should be vectorized so that t can be list-like item
+        # Low priority while frames < 1000?
         if t<=0:
             return View.copy(self)
         elif t>=1:
@@ -277,6 +295,9 @@ class View(PYME.LMVis.views.View):
             
             interp_background_color = (1-t) * self.background_color + t * other.background_color
             
+            interp_layer0_alpha = (1-t) * self.layer0_alpha + t * other.layer0_alpha
+            interp_layer0_point_size = (1-t) * self.layer0_point_size + t * other.layer0_point_size
+            
             return View(None,
                         interp_rotations[0],
                         interp_rotations[1],
@@ -290,6 +311,8 @@ class View(PYME.LMVis.views.View):
                         interp_scale_bar,
                         interp_background_color,
                         interp_axes_visible,
+                        interp_layer0_alpha,
+                        interp_layer0_point_size,
                         )
             
 
@@ -334,6 +357,8 @@ class VideoView(View):
         
     @classmethod
     def from_canvas(cls, canvas, vec_id, duration=3.0, interp_mode=Interp_mode.SMOOTH_STEP_B):
+        # reads state from canvas
+        # Probably needs updating when PYME updates
         view = canvas.get_view(vec_id) #already a copy, but copy again anyway in case base code changes, can be the basic View class. Not for copying
         args = list([view.view_id,
                    view.vec_up,
@@ -351,6 +376,8 @@ class VideoView(View):
                      canvas.scaleBarLength,
                      canvas.clear_colour,
                      canvas.AxesOverlayLayer.visible,
+                     canvas.layers[0].alpha,
+                     canvas.layers[0].point_size,
                 ])
     
         return cls(*args)
