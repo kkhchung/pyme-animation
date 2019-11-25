@@ -51,14 +51,7 @@ class VideoPanel(DockedPanel):
         self.snapshots = list()
         self.parent_panel = parent_panel
         vertical_sizer = wx.BoxSizer(wx.VERTICAL)
-#        self.view_table = wx.ListCtrl(self, -1,
-#                                      style=wx.BU_EXACTFIT | wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.SUNKEN_BORDER)
-#
-#        self.view_table.InsertColumn(0, 'id')
-#
-#        self.view_table.SetColumnWidth(0, 75)
-#        vertical_sizer.Add(self.view_table, 0, wx.EXPAND, 0)
-        
+
         self.create_list_control(vertical_sizer)
 
         self.create_buttons(vertical_sizer)
@@ -182,17 +175,9 @@ class VideoPanel(DockedPanel):
         sizer.Add(self.details_table, 0, wx.EXPAND, 0)
         
     def on_snapshot_details_change(self, event):
-#        it = self.details_table.GetItem(event.m_itemIndex)
         key = self.details_table.GetItemText(event.m_itemIndex)
-#        value_new = event.m_item.GetText()
         value_new = event.GetLabel()
-#        col = event.GetColumn()
-#        print(it)
-#        print(key)
-#        print(value_new)
-#        print(col)
-#        print(event.GetLabel())
-#        print(event.m_item)
+
         print(key)
         print(value_new)
         try:
@@ -200,16 +185,16 @@ class VideoPanel(DockedPanel):
         except Exception as e:
             print(e)
             pass
+        
         try:
 
-    #            raise(e)
             dump = VideoView(**{key: value_new})
 #            print(dump)
             
             json_dict = OrderedDict()
             for i in range(self.details_table.GetItemCount()):
                 val = self.details_table.GetItemText(i, 1)
-    #            json_dict[self.details_table.GetItemText(i, 0)] = self.details_table.GetItemText(i, 1)
+
                 try:
                     val = eval(val)
                 except Exception as e:
@@ -231,27 +216,11 @@ class VideoPanel(DockedPanel):
             print(e)
 #            raise(e)
         
-        
-
-#            
-#        view = VideoView.decode_json(json_dict)
-#        print(view)
-#        print(VideoView(**json_dict))
-#        print(self.displayed_snapshot_index)
-#        try:
-#            view = VideoView.decode_json(json_dict)
-#            self.snapshots[self.displayed_snapshot_index] = view
-#            self.refill()
-#        except:
-#            self.fill_details_table(self.snapshots[self.displayed_snapshot_index])
-#            raise Warning("Invalid input for view params")
-        
     def create_list_control(self, sizer):
         self.view_table = wx.ListCtrl(self, -1,
                               style=wx.BU_EXACTFIT | wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.SUNKEN_BORDER)
 
         self.view_table.InsertColumn(0, 'id', width=50)
-#        self.view_table.SetColumnWidth(0, 75)
         self.view_table.InsertColumn(1, 'duration', width=50)
         self.view_table.InsertColumn(2, 'interp mode', width=150)
         
@@ -298,8 +267,6 @@ class VideoPanel(DockedPanel):
         self.Bind(wx.EVT_BUTTON, self.run, run_button)
         self.Bind(wx.EVT_BUTTON, self.make, make_button)
 
-#        self.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_edit)
-#        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_select_view)
 
         # add_snapshot the buttons to the view
         grid_sizer.Add(add_button, flag=wx.EXPAND)
@@ -336,7 +303,7 @@ class VideoPanel(DockedPanel):
         self.refill()
 
     def add_snapshot(self, event):
-        #view_id = self.ask(self, message='Please enter view id')
+
         view_id = 'view_%d' % self.next_view_id
         self.next_view_id += 1
         if view_id:
@@ -415,10 +382,7 @@ class VideoPanel(DockedPanel):
         return view_list
 
     def play(self, save):
-        print('play clicked')
-#        from PYME.util import mProfile
-#        
-#        mProfile.profileOn(["animation_visgui.py", 'views.py'])
+
         fps = 30.
         if len(self.snapshots) == 0:
             self.add_snapshot(None)
@@ -433,26 +397,12 @@ class VideoPanel(DockedPanel):
             
             if width>0 and height>0:
                 self.get_canvas().SetSize((width, height))
-#                width = old_width
-#                height = old_height
+
         except:
             pass
-#            width = old_width
-#            height = old_height
-        
-#        self.get_canvas().Size[0] = 1000
-#        print(self.get_canvas())
-#        self.get_canvas().setView(0, 10000, 0, 10000)
-#        self.get_canvas().SetSize((200,201))
-#        width = self.get_canvas().Size[0]
-#        height = self.get_canvas().Size[1]    
-        
-#        width = 500
-#        height = 250
                 
         self.get_canvas().displayMode = '3D'
-#        fps = 10.0
-#        file_name = None
+
         
         if save:
             try:
@@ -472,96 +422,6 @@ class VideoPanel(DockedPanel):
                 #return
                 save=False
 
-        #dir_name = None
-#        if save:
-            #file_name = wx.FileSelector('Save video as avi named... ', flags=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
-            #if file_name and not file_name.endswith('.avi'):
-            #    file_name = '{}.avi'.format(file_name)
-
-#        f_no = 0
-#
-###        print len(self.snapshots)           
-##        if len(self.snapshots) == 0:
-##            self.add_snapshot(None)
-#            
-#        current_view = self.snapshots[0]
-#        for i, view in enumerate(self.snapshots):
-##            print('here')
-##            if current_view is None:
-##                current_view = view
-##            else:
-##            t = np.arange(0, view.duration, 1./fps) / view.duration
-#            if i==0:
-#                t = [1.0]
-#            else:
-#                t = np.linspace(0, 1.0, (view.duration * fps)+1)
-#                if view.interp_mode == VideoView.Interp_mode.LINEAR:
-#                    pass
-#                elif view.interp_mode == VideoView.Interp_mode.SQUARE:
-#                    t = t*t
-#                elif view.interp_mode == VideoView.Interp_mode.SQUARE_ROOT:
-#                    t = np.sqrt(t)
-#                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_A:
-#                    t = t*t*(3 - 2*t)
-#                elif view.interp_mode == VideoView.Interp_mode.SMOOTH_STEP_B:
-#                    t = t*t*t*(6*t*t - 15*t + 10)
-##            print(t)
-#                
-#            for j, ti in enumerate(t):
-##                print('def')
-##                if i > 0 and j == 0: #skip first frame of 2nd snapshot to avoid repeated frames
-##                    continue
-#                if np.isclose(ti, 0.0):
-#                    continue
-#                new_view = current_view.lerp(view, ti)
-#                self.get_canvas().set_view(new_view)
-##                self.get_canvas().view.scale *= 2
-##                self.get_canvas().Refresh()
-##                for callback in self.get_canvas().wantViewChangeNotification:
-##                    callback.Refresh()
-#                
-#                if save:
-#                    snap = self.get_canvas().getIm()
-#                    snap = (255*snap).astype('uint8').transpose(1, 0, 2)
-#                    video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
-#                    im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame%04d.jpg' % f_no))
-#                else:
-##                    for callback in self.get_canvas().wantViewChangeNotification:
-##                        callback.Refresh()
-##                    self.get_canvas().OnDraw()
-##                    wx.CallLater(100.0, self.play, save)
-##                    yield
-##                    sleep(1.0/fps)
-#                    wx.SafeYield()
-##                    wx.MilliSleep(1.0/fps*1e3)
-#                f_no += 1
-#                
-##                steps = int(round(view.duration * fps))
-###                print(view.clip_plane_orientation)
-###                print(current_view.clip_plane_orientation)
-##                difference_view = (view - current_view) / steps
-##                for step in range(0, steps):
-##                    new_view = current_view + difference_view * step
-##                    self.get_canvas().set_view(new_view.normalize_view())
-##                    if save:
-##                        snap = self.get_canvas().getIm()#.astype('uint8')
-##                        #print snap.shape, snap.dtype, snap.min(), snap.max()
-##                        snap = (255*snap).astype('uint8').transpose(1, 0, 2)
-##                        
-##                        #if snap.ndim == 3:
-##                        #    video.write(cv2.cvtColor(cv2.flip(snap.transpose(1, 0, 2), 0), cv2.COLOR_RGB2BGR))
-##                        #else:
-###                            video.write(cv2.flip(snap.transpose(1, 0, 2), 0))
-###                        print(snap.shape)
-###                        print(snap.dtype)
-##                        video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
-##                        im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame%04d.jpg' % f_no))
-##                        f_no += 1
-##                    else:
-##                        sleep(2.0/steps)
-##                        self.get_canvas().OnDraw()
-#                
-#            current_view = view
         self.view_counter = 0
         self.view_list = view_list
         
@@ -576,44 +436,18 @@ class VideoPanel(DockedPanel):
                 wx.SafeYield()
             
             video.release()
-#            msg_text = 'Video generation finished'
-#            msg = wx.MessageDialog(self, msg_text, 'Done', wx.OK | wx.ICON_INFORMATION)
-#            msg.ShowModal()
-#            msg.Destroy()
+
             
             self.play_finish()
         else:
             self.timer = wx.Timer(self)
-    #        self.timer.Bind(wx.EVT_TIMER, self.play_views)
+
             self.Bind(wx.EVT_TIMER, self.play_views, self.timer)
             self.timer.Start(1e3/fps)
             print('timer started')
             
-#        for i, view in enumerate(view_list):
-#            self.get_canvas().set_view(view)
-#            
-#            if save:
-#                snap = self.get_canvas().getIm()
-#                snap = (255*snap).astype('uint8').transpose(1, 0, 2)
-#                video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
-#                im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame_{0:06d}.jpg'.format(i)))
-#            else:
-#                wx.SafeYield()
-#            
-#        print('total {} frames'.format(len(view_list)))
-        
-#        if old_width != self.get_canvas().Size[0] or old_height != self.get_canvas().Size[1]:
-#            self.get_canvas().SetSize((old_width, old_height))
-        
-#        if save:
-#            video.release()
-#            msg_text = 'Video generation finished'
-#            msg = wx.MessageDialog(self, msg_text, 'Done', wx.OK | wx.ICON_INFORMATION)
-#            msg.ShowModal()
-#            msg.Destroy()
 
     def play_views(self, event):
-#        print('tick')
         if self.view_counter < len(self.view_list):
 #            self.get_canvas().set_view(self.view_list[self.view_counter])
             self.view_list[self.view_counter].apply_canvas(self.get_canvas())
@@ -622,26 +456,15 @@ class VideoPanel(DockedPanel):
             self.timer.Stop()
             self.play_finish()
             
-#    def save_views(self, event):
-#        if self.view_counter < len(self.view_list):
             
     def play_finish(self):
         if self.old_width != self.get_canvas().Size[0] or self.old_height != self.get_canvas().Size[1]:
             self.get_canvas().SetSize((self.old_width, self.old_height))
         
         print("Animation completed. Total {} frames".format(len(self.view_list)))
-
             
 #        mProfile.profileOff()
 #        mProfile.report()
-
-    @staticmethod
-    def ask(parent=None, message='', default_value=''):
-        dlg = wx.TextEntryDialog(parent, message, defaultValue=default_value)
-        dlg.ShowModal()
-        result = dlg.GetValue()
-        dlg.Destroy()
-        return result
 
     # noinspection PyTypeChecker
     def on_edit(self, event):
@@ -663,10 +486,7 @@ class VideoPanel(DockedPanel):
         self.refill()
         
     def on_canvas_changed(self, *args, **kwargs):
-#        print ('canvas changed')
-#        print (self.view_table.GetFirstSelected())
-#        print(self.get_canvas().layers[0].alpha)
-#        print(self.get_canvas().layers[0].point_size)
+
         index = self.view_table.GetFirstSelected()
         if index != -1:            
             self.snapshots[index] = VideoView.from_canvas(self.get_canvas(), self.snapshots[index].view_id)
@@ -696,9 +516,6 @@ class VideoPanel(DockedPanel):
             j = self.details_table.InsertStringItem(i, key)
             self.details_table.SetStringItem(j, 1, str(json_dict[key]))
             
-#    def read_details_table(self, snapshot):
-#        pass
-
     def refill(self):
         self.clear_view()
         for i, snapshot in enumerate(self.snapshots):

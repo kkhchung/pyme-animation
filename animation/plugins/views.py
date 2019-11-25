@@ -151,67 +151,18 @@ class View(PYME.LMVis.views.View):
 
     def __add__(self, other):
         raise NotImplementedError ()
-#        return View(None,
-#                    self.vec_up + other.vec_up,
-#                    self.vec_back + other.vec_back,
-#                    self.vec_right + other.vec_right,
-#                    self.translation + other.translation,
-#                    self.scale + other.scale,
-#                    (self.clipping.view('8f4') + other.clipping.view('8f4')).squeeze(),
-#                    self.clip_plane_orientation * other.clip_plane_orientation,
-#                    self.clip_plane_position + other.clip_plane_position
-#                    )
-#
+        
     def __sub__(self, other):
         raise NotImplementedError ()
-#        return View(None,
-#                    self.vec_up - other.vec_up,
-#                    self.vec_back - other.vec_back,
-#                    self.vec_right - other.vec_right,
-#                    self.translation - other.translation,
-#                    self.scale - other.scale,
-#                    (self.clipping.view('8f4') - other.clipping.view('8f4')).squeeze(),
-#                    other.clip_plane_orientation * self.clip_plane_orientation.T,
-#                    self.clip_plane_position - other.clip_plane_position
-#                    )
 #
     def __mul__(self, scalar):
         raise NotImplementedError ()
-#        return View(None,
-#                    self.vec_up * scalar,
-#                    self.vec_back * scalar,
-#                    self.vec_right * scalar,
-#                    self.translation * scalar,
-#                    self.scale * scalar,
-#                    (self.clipping.view('8f4') * scalar).squeeze(),
-#                    self.clip_plane_orientation * scalar,
-#                    self.clip_plane_position*scalar
-#                    )
 #
     def __div__(self, scalar):
         raise NotImplementedError ()
-#        return View(None,
-#                    self.vec_up / scalar,
-#                    self.vec_back / scalar,
-#                    self.vec_right / scalar,
-#                    self.translation / scalar,
-#                    self.scale / scalar,
-#                    (self.clipping.view('8f4') /scalar).squeeze(),
-#                    self.clip_plane_orientation / scalar,
-#                    self.clip_plane_position / scalar
-#                    )
 
     def normalize_view(self):
         raise NotImplementedError ()
-        #since now using rotation, it is always normalized
-#        self.vec_up = self.normalize(self.vec_up)
-#        self.vec_back = self.normalize(self.vec_back)
-#        self.vec_right = self.normalize(self.vec_right)
-#        return self
-
-#    @staticmethod
-#    def normalize(array):
-#        return array / numpy.linalg.norm(array)
 
     def to_json(self):
         ordered_dict = OrderedDict()
@@ -274,18 +225,13 @@ class View(PYME.LMVis.views.View):
 #            t = np.atleast_1d(t)
             rotations = Rotation.from_dcm([[self.vec_up, self.vec_back, self.vec_right], [other.vec_up, other.vec_back, other.vec_right]])
 
-#            interp_rotations = Slerp([0.0, 1.0], Rotation.from_quat([self.rotation.as_quat(), other.rotation.as_quat()]))([t]).as_dcm()[0]
+
             interp_rotations = Slerp([0.0, 1.0], rotations)([t]).as_dcm()[0]
-#            interp_translation = np.interp(t, [0.0, 1.0], [self.translation.flatten(), other.translation.flatten()]).reshape(self.translation.shape)
             interp_translation = (1-t) * self.translation + t * other.translation
-#            interp_scale = np.interp(t, [0.0, 1.0], [self.scale, other.scale])
             interp_scale = (1-t) * self.scale + t * other.scale
-#            interp_clipping = np.interp(t, [0.0, 1.0], [self.clipping, other.clipping])
             interp_clipping = ((1-t) * self.clipping.view('8f4') + t * other.clipping.view('8f4')).view(clipping_dtype)[0]
-#            print(interp_clipping)
-#            print(dummy_clipping)
+
             interp_clip_plane_orientation = Slerp([0.0, 1.0], Rotation.from_quat([self._clip_plane_orientation.as_quat(), other._clip_plane_orientation.as_quat()]))([t]).as_quat()[0]
-#            interp_clip_plane_position = np.interp(t, [0.0, 1.0], [self.clip_plane_position.flatten(), other.clip_plane_position.flatten()]).reshape(self.clip_plane_position.shape)
             interp_clip_plane_position = (1-t) * self.clip_plane_position + t * other.clip_plane_position
             
             binary_interp = t < 0.5
@@ -326,10 +272,7 @@ class View(PYME.LMVis.views.View):
         view.vec_back = combined_rotation_dcm[1]
         view.vec_right = combined_rotation_dcm[2]
     
-#TOP = View()
-
-
-    
+  
 
 class VideoView(View):
     JSON_DURATION = 'duration'
