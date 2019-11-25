@@ -63,6 +63,8 @@ class VideoPanel(DockedPanel):
 
         self.create_buttons(vertical_sizer)
         
+        self.create_nav_panel(vertical_sizer)
+        
         self.create_snapshot_details(vertical_sizer)
 
         self.SetSizerAndFit(vertical_sizer)
@@ -73,6 +75,94 @@ class VideoPanel(DockedPanel):
         
         # non-critical to save/load settings, fancy function to catch if live changes on layer
         self.get_canvas().layers[0].on_trait_change(self.on_canvas_changed, 'alpha, point_size')
+        
+    def create_nav_panel(self, sizer):
+        # generate the buttons
+        skip = wx.StaticText(self, -1, '')
+        zoom_in_button = wx.Button(self, -1, label='Zoom +', style=wx.BU_EXACTFIT)
+        zoom_out_button = wx.Button(self, -1, label='Zoom -', style=wx.BU_EXACTFIT)
+        
+        x_increase_button = wx.Button(self, -1, label='Axis X +', style=wx.BU_EXACTFIT)
+        x_decrease_button = wx.Button(self, -1, label='Axis X -', style=wx.BU_EXACTFIT)
+        y_increase_button = wx.Button(self, -1, label='Axis Y +', style=wx.BU_EXACTFIT)
+        y_decrease_button = wx.Button(self, -1, label='Axis Y -', style=wx.BU_EXACTFIT)
+        z_increase_button = wx.Button(self, -1, label='Axis Z +', style=wx.BU_EXACTFIT)
+        z_decrease_button = wx.Button(self, -1, label='Axis Z -', style=wx.BU_EXACTFIT)
+        
+        x_rotate_increase_button = wx.Button(self, -1, label='Rot Right', style=wx.BU_EXACTFIT)
+        x_rotate_decrease_button = wx.Button(self, -1, label='Rot Left', style=wx.BU_EXACTFIT)
+        y_rotate_increase_button = wx.Button(self, -1, label='Rot Back', style=wx.BU_EXACTFIT)
+        y_rotate_decrease_button = wx.Button(self, -1, label='Rot Forward', style=wx.BU_EXACTFIT)
+        z_rotate_increase_button = wx.Button(self, -1, label='Rot Up', style=wx.BU_EXACTFIT)
+        z_rotate_decrease_button = wx.Button(self, -1, label='Rot Down', style=wx.BU_EXACTFIT)
+        
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_scale(e, True), zoom_in_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_scale(e, False), zoom_out_button)
+        
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_translate(e, 0, True), x_increase_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_translate(e, 0, False), x_decrease_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_translate(e, 1, True), y_increase_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_translate(e, 1, False), y_decrease_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_translate(e, 2, True), z_increase_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_translate(e, 2, False), z_decrease_button)
+        
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 0, True), x_rotate_increase_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 0, False), x_rotate_decrease_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 1, True), y_rotate_increase_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 1, False), y_rotate_decrease_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 2, True), z_rotate_increase_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 2, False), z_rotate_decrease_button)
+        
+        grid_sizer = wx.GridSizer(5,3)
+        grid_sizer.Add(zoom_in_button, flag=wx.EXPAND)
+        grid_sizer.Add(zoom_out_button, flag=wx.EXPAND)
+        grid_sizer.Add(skip, flag=wx.EXPAND)
+        
+        grid_sizer.Add(x_increase_button, flag=wx.EXPAND)
+        grid_sizer.Add(y_increase_button, flag=wx.EXPAND)
+        grid_sizer.Add(z_increase_button, flag=wx.EXPAND)
+        grid_sizer.Add(x_decrease_button, flag=wx.EXPAND)
+        grid_sizer.Add(y_decrease_button, flag=wx.EXPAND)
+        grid_sizer.Add(z_decrease_button, flag=wx.EXPAND)
+        
+        grid_sizer.Add(x_rotate_increase_button, flag=wx.EXPAND)
+        grid_sizer.Add(y_rotate_increase_button, flag=wx.EXPAND)
+        grid_sizer.Add(z_rotate_increase_button, flag=wx.EXPAND)
+        grid_sizer.Add(x_rotate_decrease_button, flag=wx.EXPAND)
+        grid_sizer.Add(y_rotate_decrease_button, flag=wx.EXPAND)
+        grid_sizer.Add(z_rotate_decrease_button, flag=wx.EXPAND)
+        
+        sizer.Add(grid_sizer, 0, wx.EXPAND, 0)
+        
+    def on_scale(self, event, increase):
+        modifier = 2.0 if increase else 0.5
+        if wx.GetKeyState(wx.WXK_CONTROL) and not wx.GetKeyState(wx.WXK_SHIFT):            
+            modifier *= 10.0
+        elif not wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):    
+            modifier *= 0.1
+            
+        self.get_canvas().view.scale *= modifier
+        self.get_canvas().Refresh()
+        
+    def on_translate(self, event, axis, increase):
+        modifier = 1000.0 if increase else -1000.0
+        if wx.GetKeyState(wx.WXK_CONTROL) and not wx.GetKeyState(wx.WXK_SHIFT):            
+            modifier *= 10.0
+        elif not wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):    
+            modifier *= 0.1
+            
+        self.get_canvas().view.translation[axis] += modifier
+        self.get_canvas().Refresh()
+    
+    def on_rotate(self, event, axis, increase):
+        modifier = 45.0 if increase else -45.0
+        if wx.GetKeyState(wx.WXK_CONTROL) and not wx.GetKeyState(wx.WXK_SHIFT):            
+            modifier *= 8. / 3.
+        elif not wx.GetKeyState(wx.WXK_CONTROL) and wx.GetKeyState(wx.WXK_SHIFT):    
+            modifier *= 2. / 3.
+            
+        View.rotate(self.get_canvas().view, axis, modifier)
+        self.get_canvas().Refresh()
         
     def create_snapshot_details(self, sizer):
 #        class EditableListCtrl(wx.ListCtrl, wx.lib.mixins.listctrl.TextEditMixin):
@@ -172,13 +262,15 @@ class VideoPanel(DockedPanel):
         sizer.Add(self.view_table, 0, wx.EXPAND, 0)
 
     def create_buttons(self, vertical_sizer):
-        grid_sizer = wx.GridSizer(3, 4)
+        grid_sizer = wx.GridSizer(3, 5)
         # generate the buttons
         add_button = wx.Button(self, -1, label='Add', style=wx.BU_EXACTFIT)
         add_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_PLUS))
         delete_button = wx.Button(self, -1, label='Delete', style=wx.BU_EXACTFIT)
         delete_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_MINUS))
         skip = wx.StaticText(self, -1, '')
+        list_shift_up_button = wx.Button(self, -1, label='Up', style=wx.BU_EXACTFIT)
+        list_shift_down_button = wx.Button(self, -1, label='Down', style=wx.BU_EXACTFIT)
         load_button = wx.Button(self, -1, label='Load', style=wx.BU_EXACTFIT)
         load_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN))
         save_button = wx.Button(self, -1, label='Save', style=wx.BU_EXACTFIT)
@@ -199,6 +291,8 @@ class VideoPanel(DockedPanel):
         self.Bind(wx.EVT_BUTTON, self.add_snapshot, add_button)
         self.Bind(wx.EVT_BUTTON, self.delete_snapshot, delete_button)
         self.Bind(wx.EVT_BUTTON, self.clear, clear_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.shift_snapshot_order(e, True), list_shift_up_button)
+        self.Bind(wx.EVT_BUTTON, lambda e: self.shift_snapshot_order(e, False), list_shift_down_button)
         self.Bind(wx.EVT_BUTTON, self.load, load_button)
         self.Bind(wx.EVT_BUTTON, self.save, save_button)
         self.Bind(wx.EVT_BUTTON, self.run, run_button)
@@ -210,12 +304,16 @@ class VideoPanel(DockedPanel):
         # add_snapshot the buttons to the view
         grid_sizer.Add(add_button, flag=wx.EXPAND)
         grid_sizer.Add(delete_button, flag=wx.EXPAND)
-        grid_sizer.Add(skip)
+#        grid_sizer.Add(skip)
         grid_sizer.Add(clear_button, flag=wx.EXPAND)
+        grid_sizer.Add(list_shift_up_button, flag=wx.EXPAND)
+        grid_sizer.Add(list_shift_down_button, flag=wx.EXPAND)
+
         grid_sizer.Add(save_button, flag=wx.EXPAND)
         grid_sizer.Add(load_button, flag=wx.EXPAND)
         grid_sizer.Add(run_button, flag=wx.EXPAND)
         grid_sizer.Add(make_button, flag=wx.EXPAND)
+        grid_sizer.Add(skip)
         
         grid_sizer.Add(width_label, flag=wx.ALIGN_CENTER_VERTICAL)
         grid_sizer.Add(self.width_text, flag=wx.EXPAND)
@@ -223,6 +321,15 @@ class VideoPanel(DockedPanel):
         grid_sizer.Add(self.height_text, flag=wx.EXPAND)
         
         vertical_sizer.Add(grid_sizer)
+        
+    def shift_snapshot_order(self, event, forward):
+        index = self.view_table.GetFirstSelected()
+        if index != -1:
+            new_index = index + (-1 if forward else 1)
+            if new_index >= 0 and new_index < len(self.snapshots):            
+                self.snapshots.insert(new_index, self.snapshots.pop(index))
+                self.refill()
+                self.view_table.Select(new_index)
 
     def add_snapshot_to_list(self, snapshot):
         self.snapshots.append(snapshot)
@@ -253,7 +360,7 @@ class VideoPanel(DockedPanel):
         self.view_table.DeleteAllItems()
 
     def save(self, event):
-        file_name = wx.FileSelector('Save view as json named... ', flags=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
+        file_name = wx.FileSelector('Save view as json named... ', wildcard="JSON file (*.json)|*.json" ,flags=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
         if file_name:
             if not file_name.endswith('.json'):
                 file_name = '{}.json'.format(file_name)
@@ -262,7 +369,7 @@ class VideoPanel(DockedPanel):
                 f.writelines(json.dumps({self.JSON_LIST_NAME: snapshots}, indent=4))
 
     def load(self, event):
-        file_name = wx.FileSelector('Open View-JSON file')
+        file_name = wx.FileSelector('Open View-JSON file', wildcard="JSON file (*.json)|*.json")
         if file_name:
             with open(file_name, 'r') as f:
                 data = json.load(f)
@@ -345,7 +452,7 @@ class VideoPanel(DockedPanel):
                 
         self.get_canvas().displayMode = '3D'
 #        fps = 10.0
-        file_name = None
+#        file_name = None
         
         if save:
             try:
@@ -462,7 +569,7 @@ class VideoPanel(DockedPanel):
             for i in range(len(self.view_list)):
 #                self.get_canvas().set_view(self.view_list[i])
                 self.view_list[i].apply_canvas(self.get_canvas())
-                snap = self.get_canvas().getIm()
+                snap = self.get_canvas().getIm()[:, ::-1, :]
                 snap = (255*snap).astype('uint8').transpose(1, 0, 2)
                 video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
                 im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame_{0:06d}.jpg'.format(i)))

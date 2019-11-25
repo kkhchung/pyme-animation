@@ -314,8 +314,17 @@ class View(PYME.LMVis.views.View):
                         interp_layer0_alpha,
                         interp_layer0_point_size,
                         )
-            
-
+    
+    @classmethod
+    def rotate(cls, view, axis, degree):
+        current_rotation = Rotation.from_dcm([view.vec_up, view.vec_back, view.vec_right])
+        new_rotation = np.zeros(3, np.float)
+        new_rotation[axis] = np.deg2rad(degree)
+        combined_rotation = current_rotation * Rotation.from_rotvec(new_rotation)
+        combined_rotation_dcm = combined_rotation.as_dcm()
+        view.vec_up = combined_rotation_dcm[0]
+        view.vec_back = combined_rotation_dcm[1]
+        view.vec_right = combined_rotation_dcm[2]
     
 #TOP = View()
 
@@ -334,7 +343,7 @@ class VideoView(View):
     
     def __init__(self, view_id='id', vec_up=[0,1,0], vec_back = [0,0,1], vec_right = [1,0,0], translation= [0,0,0], scale=1,
                  clipping=dummy_clipping,
-                 duration = 1, interp_mode=Interp_mode.SMOOTH_STEP_B.name,
+                 duration = 1.0, interp_mode=Interp_mode.SMOOTH_STEP_B.name,
 #                 lut_draw=True, scale_bar=1000., background_color=[0,0,0],
                  *args, **kwargs):
         """
@@ -356,7 +365,7 @@ class VideoView(View):
         self.interp_mode = VideoView.Interp_mode[interp_mode]
         
     @classmethod
-    def from_canvas(cls, canvas, vec_id, duration=3.0, interp_mode=Interp_mode.SMOOTH_STEP_B):
+    def from_canvas(cls, canvas, vec_id, duration=1.0, interp_mode=Interp_mode.SMOOTH_STEP_B):
         # reads state from canvas
         # Probably needs updating when PYME updates
         view = canvas.get_view(vec_id) #already a copy, but copy again anyway in case base code changes, can be the basic View class. Not for copying
