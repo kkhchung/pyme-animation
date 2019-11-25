@@ -41,7 +41,8 @@ def_clip_plane_orientation = np.array([1,0,0,0], 'f8')#np.eye(4,4,dtype='f')
 class View(PYME.LMVis.views.View):
     def __init__(self, view_id='id', vec_up=[0,1,0], vec_back = [0,0,1], vec_right = [1,0,0], translation= [0,0,0],
                  scale=1, clipping = dummy_clipping, clip_plane_orientation=def_clip_plane_orientation, clip_plane_position=[0,0,0],
-                 **kwargs):
+                 lut_draw=True, scale_bar=1000., background_color=[0,0,0], axes_visible=True, **kwargs):
+        #avoid args catches for easier debugging
         """
         
         Parameters
@@ -74,6 +75,11 @@ class View(PYME.LMVis.views.View):
         self._clip_plane_orientation = Rotation.from_quat(clip_plane_orientation)
             
         self.clip_plane_position = np.array(clip_plane_position, dtype=np.float)
+        
+        self.lut_draw = bool(lut_draw)
+        self.scale_bar = float(scale_bar)
+        self.background_color = np.array(background_color, dtype=np.float)
+        self.axes_visible = bool(axes_visible)
         
 #        self.update_rotation()
 #        self.dirty = False
@@ -213,7 +219,11 @@ class View(PYME.LMVis.views.View):
         ordered_dict['clipping'] = self.clipping.view('8f4').squeeze().tolist()
         ordered_dict['clip_plane_orientation'] = self.clip_plane_orientation.tolist()
         ordered_dict['clip_plane_position'] = self.clip_plane_position.tolist()
-
+        
+        ordered_dict['lut_draw'] = self.lut_draw
+        ordered_dict['scale_bar'] = self.scale_bar
+        ordered_dict['background_color'] = self.background_color.tolist()
+        ordered_dict['axes_visible'] = self.axes_visible
         return ordered_dict
 
 #    def __str__(self):
@@ -227,6 +237,13 @@ class View(PYME.LMVis.views.View):
 #    @classmethod
 #    def copy(cls, view):
 #        return cls.decode_json(view.to_json())
+        
+    def apply_canvas(self, canvas):
+        canvas.set_view(self)
+        canvas.LUTDraw = self.lut_draw
+        canvas.scaleBarLength = self.scale_bar
+        canvas.clear_colour = self.background_color
+        canvas.AxesOverlayLayer.visible = self.axes_visible
         
     def lerp(self, other, t):
         if t<=0:
@@ -253,6 +270,13 @@ class View(PYME.LMVis.views.View):
 #            interp_clip_plane_position = np.interp(t, [0.0, 1.0], [self.clip_plane_position.flatten(), other.clip_plane_position.flatten()]).reshape(self.clip_plane_position.shape)
             interp_clip_plane_position = (1-t) * self.clip_plane_position + t * other.clip_plane_position
             
+            binary_interp = t < 0.5
+            interp_lut_draw = self.lut_draw if binary_interp else other.lut_draw
+            interp_scale_bar = self.scale_bar if binary_interp else other.scale_bar
+            interp_axes_visible = self.axes_visible if binary_interp else other.axes_visible
+            
+            interp_background_color = (1-t) * self.background_color + t * other.background_color
+            
             return View(None,
                         interp_rotations[0],
                         interp_rotations[1],
@@ -261,7 +285,11 @@ class View(PYME.LMVis.views.View):
                         interp_scale,
                         interp_clipping,
                         interp_clip_plane_orientation,
-                        interp_clip_plane_position
+                        interp_clip_plane_position,
+                        interp_lut_draw,
+                        interp_scale_bar,
+                        interp_background_color,
+                        interp_axes_visible,
                         )
             
 
@@ -281,8 +309,11 @@ class VideoView(View):
         SMOOTH_STEP_A = 3
         SMOOTH_STEP_B = 4
     
-    def __init__(self, view_id='id', vec_up=[0,1,0], vec_back = [0,0,1], vec_right = [1,0,0], translation= [0,0,0], scale=1, clipping=dummy_clipping,
-                 duration = 1, interp_mode=Interp_mode.SMOOTH_STEP_B.name, *args, **kwargs):
+    def __init__(self, view_id='id', vec_up=[0,1,0], vec_back = [0,0,1], vec_right = [1,0,0], translation= [0,0,0], scale=1,
+                 clipping=dummy_clipping,
+                 duration = 1, interp_mode=Interp_mode.SMOOTH_STEP_B.name,
+#                 lut_draw=True, scale_bar=1000., background_color=[0,0,0],
+                 *args, **kwargs):
         """
 
         Parameters
@@ -295,13 +326,16 @@ class VideoView(View):
         zoom        usually a scalar
         duration    duration of the view transition in seconds
         """
-        super(VideoView, self).__init__(view_id, vec_up, vec_back, vec_right, translation, scale, clipping, *args, **kwargs)
+        super(VideoView, self).__init__(view_id, vec_up, vec_back, vec_right, translation, scale, clipping,
+#             lut_draw, scale_bar, background_color,
+             *args, **kwargs)
         self._duration = float(duration)
         self.interp_mode = VideoView.Interp_mode[interp_mode]
         
     @classmethod
-    def from_view(cls, view, duration=3.0, interp_mode=Interp_mode.SMOOTH_STEP_B):
-        return cls(view.view_id,
+    def from_canvas(cls, canvas, vec_id, duration=3.0, interp_mode=Interp_mode.SMOOTH_STEP_B):
+        view = canvas.get_view(vec_id) #already a copy, but copy again anyway in case base code changes, can be the basic View class. Not for copying
+        args = list([view.view_id,
                    view.vec_up,
                    view.vec_back,
                    view.vec_right,
@@ -311,7 +345,33 @@ class VideoView(View):
                    duration,
                    interp_mode.name,
                    view.clip_plane_orientation,
-                   view.clip_plane_position)
+                   view.clip_plane_position,])
+#        print(canvas.AxesOverlayLayer)
+        args.extend([canvas.LUTDraw,
+                     canvas.scaleBarLength,
+                     canvas.clear_colour,
+                     canvas.AxesOverlayLayer.visible,
+                ])
+    
+        return cls(*args)
+        
+#    @classmethod
+#    def from_view(cls, view, duration=3.0, interp_mode=Interp_mode.SMOOTH_STEP_B):
+#        return cls(view.view_id,
+#                   view.vec_up,
+#                   view.vec_back,
+#                   view.vec_right,
+#                   view.translation,
+#                   view.scale,
+#                   view.clipping,
+#                   duration,
+#                   interp_mode.name,
+#                   view.clip_plane_orientation,
+#                   view.clip_plane_position,
+##                   view.lut_draw,
+##                   view.scale_bar,
+##                   view.background_color,
+#                   )
     
     @property
     def duration(self):

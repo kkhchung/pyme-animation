@@ -29,7 +29,7 @@ import wx.lib.agw.aui as aui
 from PYME.ui import editList
 
 from PYME.LMVis.Extras.dockedPanel import DockedPanel
-from animation.plugins.views import VideoView
+from animation.plugins.views import View, VideoView
 
 from PIL import Image
 import os
@@ -130,6 +130,7 @@ class VideoPanel(DockedPanel):
             view = VideoView(**json_dict)
             self.snapshots[self.displayed_snapshot_index] = view
             self.refill()
+            view.apply_canvas(self.get_canvas())
             print('updated')
             
         except Exception as e:
@@ -163,6 +164,7 @@ class VideoPanel(DockedPanel):
         
         self.view_table.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.on_edit)
         self.view_table.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_select_view)
+        self.view_table.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.on_deselect_view)
         
         sizer.Add(self.view_table, 0, wx.EXPAND, 0)
 
@@ -229,9 +231,9 @@ class VideoPanel(DockedPanel):
         self.next_view_id += 1
         if vec_id:
 #            duration = 3.0
-            view = self.get_canvas().get_view(vec_id)
-            video_view = VideoView.from_view(view)#, duration, )
-#            video_view = VideoView.from_canvas(self.get_canvas(), vec_id)#, duration, )
+#            view = self.get_canvas().get_view(vec_id)
+#            video_view = VideoView.from_view(view)#, duration, )
+            video_view = VideoView.from_canvas(self.get_canvas(), vec_id)#, duration, )
             self.add_snapshot_to_list(video_view)
 
     def delete_snapshot(self, event):
@@ -455,7 +457,8 @@ class VideoPanel(DockedPanel):
         
         if save:
             for i in range(len(self.view_list)):
-                self.get_canvas().set_view(self.view_list[i])
+#                self.get_canvas().set_view(self.view_list[i])
+                self.view_list[i].apply_canvas(self.get_canvas())
                 snap = self.get_canvas().getIm()
                 snap = (255*snap).astype('uint8').transpose(1, 0, 2)
                 video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
@@ -502,7 +505,8 @@ class VideoPanel(DockedPanel):
     def play_views(self, event):
 #        print('tick')
         if self.view_counter < len(self.view_list):
-            self.get_canvas().set_view(self.view_list[self.view_counter])
+#            self.get_canvas().set_view(self.view_list[self.view_counter])
+            self.view_list[self.view_counter].apply_canvas(self.get_canvas())
             self.view_counter += 1
         else:
             self.timer.Stop()
@@ -547,19 +551,27 @@ class VideoPanel(DockedPanel):
 
         dlg.Destroy()
         self.refill()
+        
+    
 
     def on_select_view(self, event):
         index = self.view_table.GetFirstSelected()
         snapshot = self.snapshots[index]
 
-        self.get_canvas().set_view(snapshot)
+#        self.get_canvas().set_view(snapshot)
+        snapshot.apply_canvas(self.get_canvas())
         
         self.fill_details_table(snapshot)
         
         self.displayed_snapshot_index = index
         
-    def fill_details_table(self, snapshot):
+    def on_deselect_view(self, event):
+        canvas = self.get_canvas()
+        canvas.set_view(View.copy(canvas.get_view()))
         self.details_table.DeleteAllItems()
+        
+    def fill_details_table(self, snapshot):
+#        self.details_table.DeleteAllItems()
         
         json_dict = snapshot.to_json()        
         for i, key in enumerate(json_dict.keys()):
