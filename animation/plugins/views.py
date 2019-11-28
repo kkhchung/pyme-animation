@@ -197,7 +197,7 @@ class View(PYME.LMVis.views.View):
 #    def copy(cls, view):
 #        return cls.decode_json(view.to_json())
         
-    def apply_canvas(self, canvas):
+    def apply_canvas(self, canvas, fast=True):
         # This applies the save settings to the canvas. This probably needs updating when PYME updates.
         
         canvas.set_view(self)
@@ -206,11 +206,15 @@ class View(PYME.LMVis.views.View):
         canvas.clear_colour = self.background_color
         canvas.AxesOverlayLayer.visible = self.axes_visible
 
-        # These are both 'fast' changes. Points are not recalculated. Works because render engine reads from them every frame.
-        if ~np.allclose(self.layer0_alpha, canvas.layers[0].get_colors()[0, 3]):
-            #crude check to see if alpha is different from current
-            canvas.layers[0]._colors[:, 3] = self.layer0_alpha
-        canvas.layers[0].trait_set(trait_change_notify=False, **{'point_size':self.layer0_point_size})
+        if fast:
+            # These are both 'fast' changes. Points are not recalculated. Works because render engine reads from them every frame.
+            if ~np.allclose(self.layer0_alpha, canvas.layers[0].get_colors()[0, 3]):
+                #crude check to see if alpha is different from current
+                canvas.layers[0]._colors[:, 3] = self.layer0_alpha
+            canvas.layers[0].trait_set(trait_change_notify=False, **{'point_size':self.layer0_point_size})
+        else:
+            canvas.layers[0].trait_set(trait_change_notify=True, **{'alpha':self.layer0_alpha, 'point_size':self.layer0_point_size})
+            canvas.GrandParent.Parent.Refresh()
         
     def lerp(self, other, t):
         # Should be vectorized so that t can be list-like item

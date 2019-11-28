@@ -208,7 +208,7 @@ class VideoPanel(DockedPanel):
             view = VideoView(**json_dict)
             self.snapshots[self.displayed_snapshot_index] = view
             self.refill()
-            view.apply_canvas(self.get_canvas())
+            view.apply_canvas(self.get_canvas(), fast=False)
             print('updated')
             
         except Exception as e:
@@ -231,23 +231,26 @@ class VideoPanel(DockedPanel):
         sizer.Add(self.view_table, 0, wx.EXPAND, 0)
 
     def create_buttons(self, vertical_sizer):
-        grid_sizer = wx.GridSizer(3, 5)
+        grid_sizer = wx.GridSizer(4, 5)
         # generate the buttons
         add_button = wx.Button(self, -1, label='Add', style=wx.BU_EXACTFIT)
-        add_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_PLUS))
+        add_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_PLUS, wx.ART_BUTTON))
         delete_button = wx.Button(self, -1, label='Delete', style=wx.BU_EXACTFIT)
-        delete_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_MINUS))
+        delete_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_MINUS, wx.ART_BUTTON))
         skip = wx.StaticText(self, -1, '')
         list_shift_up_button = wx.Button(self, -1, label='Up', style=wx.BU_EXACTFIT)
         list_shift_down_button = wx.Button(self, -1, label='Down', style=wx.BU_EXACTFIT)
         load_button = wx.Button(self, -1, label='Load', style=wx.BU_EXACTFIT)
-        load_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN))
+        load_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN, wx.ART_BUTTON))
         save_button = wx.Button(self, -1, label='Save', style=wx.BU_EXACTFIT)
-        save_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE))
+        save_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, wx.ART_BUTTON))
         clear_button = wx.Button(self, -1, label='Clear', style=wx.BU_EXACTFIT)
-        clear_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_NEW))
+        clear_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_NEW, wx.ART_BUTTON))
         run_button = wx.Button(self, -1, label='Play', style=wx.BU_EXACTFIT)
         make_button = wx.Button(self, -1, label='Make', style=wx.BU_EXACTFIT)
+        self.stop_button = wx.Button(self, -1, label='Canel', style=wx.BU_EXACTFIT)
+        self.stop_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_CROSS_MARK, wx.ART_BUTTON))  
+        self.stop_button.Enable(False)
         
         width_label = wx.StaticText(self, label='Width:', style=wx.BU_EXACTFIT | wx.EXPAND | wx.ALIGN_CENTRE)
         self.width_text = wx.TextCtrl(self, size=(-1, -1), style=wx.BU_EXACTFIT | wx.EXPAND)
@@ -255,6 +258,9 @@ class VideoPanel(DockedPanel):
         height_label = wx.StaticText(self, label='Height:', style=wx.BU_EXACTFIT | wx.EXPAND | wx.ALIGN_CENTRE)
         self.height_text = wx.TextCtrl(self, size=(-1, -1), style=wx.BU_EXACTFIT | wx.EXPAND)
         self.height_text.SetValue(str(-1))
+        framerate_label = wx.StaticText(self, label='FPS:', style=wx.BU_EXACTFIT | wx.EXPAND | wx.ALIGN_CENTRE)
+        self.framerate_text = wx.TextCtrl(self, size=(-1, -1), style=wx.BU_EXACTFIT | wx.EXPAND)
+        self.framerate_text.SetValue(str(30.0))
 
         # bind the buttons and its handlers
         self.Bind(wx.EVT_BUTTON, self.add_snapshot, add_button)
@@ -266,6 +272,7 @@ class VideoPanel(DockedPanel):
         self.Bind(wx.EVT_BUTTON, self.save, save_button)
         self.Bind(wx.EVT_BUTTON, self.run, run_button)
         self.Bind(wx.EVT_BUTTON, self.make, make_button)
+        self.Bind(wx.EVT_BUTTON, self.stop_animation, self.stop_button)
 
 
         # add_snapshot the buttons to the view
@@ -280,12 +287,16 @@ class VideoPanel(DockedPanel):
         grid_sizer.Add(load_button, flag=wx.EXPAND)
         grid_sizer.Add(run_button, flag=wx.EXPAND)
         grid_sizer.Add(make_button, flag=wx.EXPAND)
-        grid_sizer.Add(skip)
+        grid_sizer.Add(self.stop_button, flag=wx.EXPAND)
+#        grid_sizer.Add(skip)
         
         grid_sizer.Add(width_label, flag=wx.ALIGN_CENTER_VERTICAL)
         grid_sizer.Add(self.width_text, flag=wx.EXPAND)
         grid_sizer.Add(height_label, flag=wx.ALIGN_CENTER_VERTICAL)
         grid_sizer.Add(self.height_text, flag=wx.EXPAND)
+        grid_sizer.Add(skip, flag=wx.EXPAND)
+        grid_sizer.Add(framerate_label, flag=wx.ALIGN_CENTER_VERTICAL)
+        grid_sizer.Add(self.framerate_text, flag=wx.EXPAND)
         
         vertical_sizer.Add(grid_sizer)
         
@@ -382,8 +393,18 @@ class VideoPanel(DockedPanel):
         return view_list
 
     def play(self, save):
-
-        fps = 30.
+        for child1 in self.parent_panel.GetChildren():
+            for child2 in child1.GetChildren():
+                child2.Enable(False)
+        self.stop_button.Enable()
+        
+        try:
+            fps = float(self.framerate_text.GetValue())
+        except:
+#            self.framerate_text.SetValue(str(30.0))            
+            fps = 30.0
+            print("Bad FPS input. Defaulting to 30 fps.")
+        
         if len(self.snapshots) == 0:
             self.add_snapshot(None)
         view_list = self.build_view_list(fps)
@@ -399,10 +420,11 @@ class VideoPanel(DockedPanel):
                 self.get_canvas().SetSize((width, height))
 
         except:
-            pass
+            width = self.old_width
+            height = self.old_height
+            print("Bad width/height input. Defaulting to current size.")
                 
         self.get_canvas().displayMode = '3D'
-
         
         if save:
             try:
@@ -423,17 +445,21 @@ class VideoPanel(DockedPanel):
                 save=False
 
         self.view_counter = 0
-        self.view_list = view_list
+        self.view_list = view_list        
+        self.halt = False
         
-        if save:
+        if save:            
             for i in range(len(self.view_list)):
+#                print(self.halt)
+                if self.halt == True:
+                    break
 #                self.get_canvas().set_view(self.view_list[i])
                 self.view_list[i].apply_canvas(self.get_canvas())
                 snap = self.get_canvas().getIm()[:, ::-1, :]
                 snap = (255*snap).astype('uint8').transpose(1, 0, 2)
                 video.write(snap.astype(np.uint8)[:,:, [2,1,0]])
                 im = Image.fromarray(snap).save(os.path.join(dir_name, 'frame_{0:06d}.jpg'.format(i)))
-                wx.SafeYield()
+                wx.Yield()
             
             video.release()
 
@@ -444,11 +470,11 @@ class VideoPanel(DockedPanel):
 
             self.Bind(wx.EVT_TIMER, self.play_views, self.timer)
             self.timer.Start(1e3/fps)
-            print('timer started')
+#            print('timer started')
             
 
     def play_views(self, event):
-        if self.view_counter < len(self.view_list):
+        if self.view_counter >= 0 and self.view_counter < len(self.view_list):
 #            self.get_canvas().set_view(self.view_list[self.view_counter])
             self.view_list[self.view_counter].apply_canvas(self.get_canvas())
             self.view_counter += 1
@@ -461,10 +487,28 @@ class VideoPanel(DockedPanel):
         if self.old_width != self.get_canvas().Size[0] or self.old_height != self.get_canvas().Size[1]:
             self.get_canvas().SetSize((self.old_width, self.old_height))
         
-        print("Animation completed. Total {} frames".format(len(self.view_list)))
+        if self.halt or self.view_counter==-1 :
+            print("Terminated")
+        else:
+            print("Animation completed. Total {} frames".format(len(self.view_list)))
+        
+        for child1 in self.parent_panel.GetChildren():
+            for child2 in child1.GetChildren():
+                child2.Enable(True)
+                
+        self.stop_button.Enable(False)
             
 #        mProfile.profileOff()
 #        mProfile.report()
+        
+    def stop_animation(self, event):
+#        print('cancel clicked')
+        self.halt = True
+        self.view_counter = -1
+        
+        # hard refresh, for when an exception is raised and play_finish is never called.
+        if wx.GetKeyState(wx.WXK_CONTROL):
+            self.play_finish()
 
     # noinspection PyTypeChecker
     def on_edit(self, event):
@@ -497,7 +541,7 @@ class VideoPanel(DockedPanel):
         snapshot = self.snapshots[index]
 
 #        self.get_canvas().set_view(snapshot)
-        snapshot.apply_canvas(self.get_canvas())
+        snapshot.apply_canvas(self.get_canvas(), fast=False)
         
         self.fill_details_table(snapshot)
         
@@ -525,7 +569,8 @@ class VideoPanel(DockedPanel):
                 self.view_table.SetStringItem(j, 1, str(snapshot.duration))
                 self.view_table.SetStringItem(j, 2, snapshot.interp_mode.name)
             
-
+#    def refresh_visgui(self):
+        
 
 class EditDialog(wx.Dialog):
     def __init__(self, parent, snapshot, title=''):
