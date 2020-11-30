@@ -106,7 +106,7 @@ class VideoPanel(DockedPanel):
         self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 2, True), z_rotate_increase_button)
         self.Bind(wx.EVT_BUTTON, lambda e: self.on_rotate(e, 2, False), z_rotate_decrease_button)
         
-        grid_sizer = wx.GridSizer(5,3)
+        grid_sizer = wx.GridSizer(5, 3, 0, 0)
         grid_sizer.Add(zoom_in_button, flag=wx.EXPAND)
         grid_sizer.Add(zoom_out_button, flag=wx.EXPAND)
         grid_sizer.Add(skip, flag=wx.EXPAND)
@@ -231,7 +231,7 @@ class VideoPanel(DockedPanel):
         sizer.Add(self.view_table, 0, wx.EXPAND, 0)
 
     def create_buttons(self, vertical_sizer):
-        grid_sizer = wx.GridSizer(4, 5)
+        grid_sizer = wx.GridSizer(4, 5, 0, 0)
         # generate the buttons
         add_button = wx.Button(self, -1, label='Add', style=wx.BU_EXACTFIT)
         add_button.SetBitmap(wx.ArtProvider.GetBitmap(wx.ART_PLUS, wx.ART_BUTTON))
@@ -557,17 +557,17 @@ class VideoPanel(DockedPanel):
         
         json_dict = snapshot.to_json()        
         for i, key in enumerate(json_dict.keys()):
-            j = self.details_table.InsertStringItem(i, key)
-            self.details_table.SetStringItem(j, 1, str(json_dict[key]))
+            j = self.details_table.InsertItem(i, key)
+            self.details_table.SetItem(j, 1, str(json_dict[key]))
             
     def refill(self):
         self.clear_view()
         for i, snapshot in enumerate(self.snapshots):
             index = len(self.snapshots)
-            j = self.view_table.InsertStringItem(index, snapshot.view_id)
+            j = self.view_table.InsertItem(index, snapshot.view_id)
             if i > 0:
-                self.view_table.SetStringItem(j, 1, str(snapshot.duration))
-                self.view_table.SetStringItem(j, 2, snapshot.interp_mode.name)
+                self.view_table.SetItem(j, 1, str(snapshot.duration))
+                self.view_table.SetItem(j, 2, snapshot.interp_mode.name)
             
 #    def refresh_visgui(self):
         
@@ -615,7 +615,7 @@ class EditDialog(wx.Dialog):
 class EditPanel(wx.Panel):
     def __init__(self, parent, id_number, snapshot, size, pos):
         wx.Panel.__init__(self, parent, id_number, size=size, pos=pos, style=wx.BORDER_SUNKEN)
-        grid_sizer = wx.GridSizer(3, 2)
+        grid_sizer = wx.GridSizer(3, 2, 0, 0)
 
         # generate row for view_id
         grid_sizer.Add(wx.StaticText(self, label='View Id', style=wx.BU_EXACTFIT))
