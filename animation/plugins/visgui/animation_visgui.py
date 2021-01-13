@@ -25,6 +25,7 @@ from time import sleep
 import wx
 import wx.lib.agw.aui as aui
 #import wx.lib.mixins.listctrl
+from wx.lib import resizewidget
 
 from PYME.ui import editList
 
@@ -68,6 +69,8 @@ class VideoPanel(DockedPanel):
         
         # non-critical to save/load settings, fancy function to catch if live changes on layer
         self.get_canvas().layers[0].on_trait_change(self.on_canvas_changed, 'alpha, point_size')
+        
+        self.Bind(resizewidget.EVT_RW_LAYOUT_NEEDED, lambda evt: self.Layout())            
         
     def create_nav_panel(self, sizer):
         # generate the buttons
@@ -157,13 +160,14 @@ class VideoPanel(DockedPanel):
         View.rotate(self.get_canvas().view, axis, modifier)
         self.get_canvas().Refresh()
         
-    def create_snapshot_details(self, sizer):
+    def create_snapshot_details(self, sizer):        
+        resize_widget = resizewidget.ResizeWidget(self)
 #        class EditableListCtrl(wx.ListCtrl, wx.lib.mixins.listctrl.TextEditMixin):
 #            def __init__(self, *args, **kwargs):                
 #                wx.ListCtrl.__init__(self, *args, **kwargs)
 #                wx.lib.mixins.listctrl.TextEditMixin.__init__(self)
         
-        self.details_table = editList.EditListCtrl(self, -1,
+        self.details_table = editList.EditListCtrl(resize_widget, -1, size=(-1, 150),
                               style=wx.BU_EXACTFIT | wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.SUNKEN_BORDER | wx.LC_EDIT_LABELS)
         
         self.details_table.InsertColumn(0, 'param', width=100)
@@ -172,7 +176,7 @@ class VideoPanel(DockedPanel):
         
         self.details_table.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_snapshot_details_change)
         
-        sizer.Add(self.details_table, 0, wx.EXPAND, 0)
+        sizer.Add(resize_widget, 0, wx.EXPAND, 0)
         
     def on_snapshot_details_change(self, event):
         key = self.details_table.GetItemText(event.m_itemIndex)
@@ -217,7 +221,8 @@ class VideoPanel(DockedPanel):
 #            raise(e)
         
     def create_list_control(self, sizer):
-        self.view_table = wx.ListCtrl(self, -1,
+        resize_widget = resizewidget.ResizeWidget(self)
+        self.view_table = wx.ListCtrl(resize_widget, -1, size=(-1, 150),
                               style=wx.BU_EXACTFIT | wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.SUNKEN_BORDER)
 
         self.view_table.InsertColumn(0, 'id', width=50)
@@ -228,7 +233,7 @@ class VideoPanel(DockedPanel):
         self.view_table.Bind(wx.EVT_LIST_ITEM_SELECTED, self.on_select_view)
         self.view_table.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.on_deselect_view)
         
-        sizer.Add(self.view_table, 0, wx.EXPAND, 0)
+        sizer.Add(resize_widget, 0, wx.EXPAND, 0)
 
     def create_buttons(self, vertical_sizer):
         grid_sizer = wx.GridSizer(4, 5, 0, 0)
