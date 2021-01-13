@@ -39,6 +39,14 @@ import numpy as np
 from collections import OrderedDict
 #from PYME.util import mProfile
 
+wx_maj_version = int(wx.__version__.split(".")[0])
+if wx_maj_version >= 4:
+    listctrl_insert_item = "InsertItem"
+    listctrl_set_item = "SetItem"
+else:
+    listctrl_insert_item = "InsertStringItem"
+    listctrl_set_item = "SetStringItem"
+
 # noinspection PyUnusedLocal
 class VideoPanel(DockedPanel):
     JSON_LIST_NAME = 'views'
@@ -562,17 +570,17 @@ class VideoPanel(DockedPanel):
         
         json_dict = snapshot.to_json()        
         for i, key in enumerate(json_dict.keys()):
-            j = self.details_table.InsertItem(i, key)
-            self.details_table.SetItem(j, 1, str(json_dict[key]))
+            j = getattr(self.details_table, listctrl_insert_item)(i, key)
+            getattr(self.details_table, listctrl_set_item)(j, 1, str(json_dict[key]))
             
     def refill(self):
         self.clear_view()
         for i, snapshot in enumerate(self.snapshots):
             index = len(self.snapshots)
-            j = self.view_table.InsertItem(index, snapshot.view_id)
+            j = getattr(self.view_table, listctrl_insert_item)(index, snapshot.view_id)
             if i > 0:
-                self.view_table.SetItem(j, 1, str(snapshot.duration))
-                self.view_table.SetItem(j, 2, snapshot.interp_mode.name)
+                getattr(self.view_table, listctrl_set_item)(j, 1, str(snapshot.duration))
+                getattr(self.view_table, listctrl_set_item)(j, 2, snapshot.interp_mode.name)
             
 #    def refresh_visgui(self):
         
