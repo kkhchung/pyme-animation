@@ -363,7 +363,7 @@ class VideoView(View):
     @duration.setter
     def duration(self, value):
         if value:
-            self._duration = value
+            self._duration = float(value)
     
     def to_json(self):
         ordered_dict = super(VideoView, self).to_json()

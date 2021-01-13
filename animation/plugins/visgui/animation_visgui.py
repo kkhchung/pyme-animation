@@ -599,6 +599,8 @@ class EditDialog(wx.Dialog):
 
         bt_sizer.AddButton(btn)
 
+        bt_sizer.AddButton(wx.Button(self, wx.ID_CANCEL))
+
         bt_sizer.Realize()
 
         sizer1.Add(bt_sizer, 0, wx.ALIGN_RIGHT | wx.ALIGN_CENTER_VERTICAL | wx.ALL, 5)
@@ -635,7 +637,8 @@ class EditPanel(wx.Panel):
         self.duration_text.SetValue("{:.9f}".format(snapshot.duration))
         
         grid_sizer.Add(wx.StaticText(self, label='Interp mode', style=wx.BU_EXACTFIT))
-        self.interp_mode_cb = wx.ComboBox(self, size=(-1, -1), value=snapshot.interp_mode.name, choices=VideoView.Interp_mode.__members__.keys(), style=wx.BU_EXACTFIT | wx.EXPAND)
+        self.interp_mode_cb = wx.ComboBox(self, size=(-1, -1), choices=VideoView.Interp_mode.__members__.keys(), style=wx.BU_EXACTFIT | wx.EXPAND)
+        self.interp_mode_cb.SetSelection(VideoView.Interp_mode.__members__.keys().index(snapshot.interp_mode.name))
         grid_sizer.Add(self.interp_mode_cb)
 #        self.interp_mode_text.SetValue("{:.9f}".format(snapshot.interp_mode.name))
 
