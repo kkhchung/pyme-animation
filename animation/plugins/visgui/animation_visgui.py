@@ -24,7 +24,7 @@ from time import sleep
 
 import wx
 import wx.lib.agw.aui as aui
-#import wx.lib.mixins.listctrl
+from wx.lib.mixins import listctrl
 from wx.lib import resizewidget
 
 from PYME.ui import editList
@@ -175,19 +175,22 @@ class VideoPanel(DockedPanel):
 #                wx.ListCtrl.__init__(self, *args, **kwargs)
 #                wx.lib.mixins.listctrl.TextEditMixin.__init__(self)
         
-        self.details_table = editList.EditListCtrl(resize_widget, -1, size=(-1, 150),
+        self.details_table = EditListCtrl(resize_widget, -1, size=(-1, 150),
                               style=wx.BU_EXACTFIT | wx.LC_REPORT | wx.LC_SINGLE_SEL | wx.SUNKEN_BORDER | wx.LC_EDIT_LABELS)
         
         self.details_table.InsertColumn(0, 'param', width=100)
         self.details_table.InsertColumn(1, 'value', width=150)
-        self.details_table.makeColumnEditable(1)
         
         self.details_table.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.on_snapshot_details_change)
         
         sizer.Add(resize_widget, 0, wx.EXPAND, 0)
         
-    def on_snapshot_details_change(self, event):
-        key = self.details_table.GetItemText(event.m_itemIndex)
+    def on_snapshot_details_change(self, event):        
+        if event.GetColumn() == 0:
+            event.Veto()
+            return
+
+        key = self.details_table.GetItemText(event.GetIndex())
         value_new = event.GetLabel()
 
         print(key)
@@ -680,6 +683,13 @@ class VideoFrame(wx.Frame):
 
         self.SetSizer(hsizer)
         hsizer.Fit(self)
+
+class EditListCtrl(wx.ListCtrl, listctrl.TextEditMixin, listctrl.ListCtrlAutoWidthMixin):
+    def __init__(self, parent, ID, pos=wx.DefaultPosition, size=wx.DefaultSize, style=0):
+        wx.ListCtrl.__init__(self, parent, ID, pos, size, style)
+
+        listctrl.ListCtrlAutoWidthMixin.__init__(self)
+        listctrl.TextEditMixin.__init__(self)
 
 def Plug(vis_fr):
     
