@@ -42,7 +42,8 @@ class View(PYME.LMVis.views.View):
     def __init__(self, view_id='id', vec_up=[0,1,0], vec_back = [0,0,1], vec_right = [1,0,0], translation= [0,0,0],
                  scale=1, clipping = dummy_clipping, clip_plane_orientation=def_clip_plane_orientation, clip_plane_position=[0,0,0],
                  lut_draw=True, scale_bar=1000., background_color=[0,0,0], axes_visible=True,
-                 layer0_alpha=1.0, layer0_point_size=30.0,
+                #  layer0_alpha=1.0, layer0_point_size=30.0,
+                 layers=[],
                  **kwargs):
         #avoid args catches for easier debugging
         """
@@ -83,8 +84,9 @@ class View(PYME.LMVis.views.View):
         self.background_color = np.array(background_color, dtype=np.float)
         self.axes_visible = bool(axes_visible)
         
-        self.layer0_alpha = layer0_alpha
-        self.layer0_point_size = layer0_point_size
+        # self.layer0_alpha = layer0_alpha
+        # self.layer0_point_size = layer0_point_size
+        self.layers = layers
         
 #        self.update_rotation()
 #        self.dirty = False
@@ -181,8 +183,11 @@ class View(PYME.LMVis.views.View):
         ordered_dict['background_color'] = self.background_color.tolist()
         ordered_dict['axes_visible'] = self.axes_visible
         
-        ordered_dict['layer0_alpha'] = self.layer0_alpha
-        ordered_dict['layer0_point_size'] = self.layer0_point_size
+        # ordered_dict['layer0_alpha'] = self.layer0_alpha
+        # ordered_dict['layer0_point_size'] = self.layer0_point_size
+        for i, layer in enumerate(self.layers):
+            for key, val in layer.iteritems():
+                ordered_dict["layer{}_{}".format(i, key)] = val
         return ordered_dict
 
 #    def __str__(self):
@@ -206,15 +211,19 @@ class View(PYME.LMVis.views.View):
         canvas.clear_colour = self.background_color
         canvas.AxesOverlayLayer.visible = self.axes_visible
 
-        if fast:
-            # These are both 'fast' changes. Points are not recalculated. Works because render engine reads from them every frame.
-            if ~np.allclose(self.layer0_alpha, canvas.layers[0].get_colors()[0, 3]):
-                #crude check to see if alpha is different from current
-                canvas.layers[0]._colors[:, 3] = self.layer0_alpha
-            canvas.layers[0].trait_set(trait_change_notify=False, **{'point_size':self.layer0_point_size})
-        else:
-            canvas.layers[0].trait_set(trait_change_notify=True, **{'alpha':self.layer0_alpha, 'point_size':self.layer0_point_size})
-            canvas.GrandParent.Parent.Refresh()
+        for i, layer in enumerate(self.layers):
+            if i >= len(canvas.layers):
+                print("Not enough layers. Need to add more layers manually to be able to load settings.")
+                break
+            if fast:
+                # These are both 'fast' changes. Points are not recalculated. Works because render engine reads from them every frame.
+                if ~np.allclose(layer["alpha"], canvas.layers[i].get_colors()[0, 3]):
+                    #crude check to see if alpha is different from current
+                    canvas.layers[i]._colors[:, 3] = layer["alpha"]
+                canvas.layers[i].trait_set(trait_change_notify=False, **{'point_size':layer["point_size"]})
+            else:
+                canvas.layers[i].trait_set(trait_change_notify=True, **{'alpha':layer["alpha"], 'point_size':layer["point_size"]})
+                canvas.GrandParent.Parent.Refresh()
         
     def lerp(self, other, t):
         # Should be vectorized so that t can be list-like item
@@ -332,10 +341,17 @@ class VideoView(View):
                      canvas.scaleBarLength,
                      canvas.clear_colour,
                      canvas.AxesOverlayLayer.visible,
-                     canvas.layers[0].alpha,
-                     canvas.layers[0].point_size,
+                    #  canvas.layers[0].alpha,
+                    #  canvas.layers[0].point_size,
                 ])
-    
+        layers_args = list()
+        for layer in canvas.layers:
+            temp_dict = OrderedDict()
+            temp_dict["alpha"] = layer.alpha
+            temp_dict["point_size"] = layer.point_size
+            layers_args.append(temp_dict)
+        args.append(layers_args)
+
         return cls(*args)
         
 #    @classmethod
@@ -371,8 +387,8 @@ class VideoView(View):
         ordered_dict['interp_mode'] = self.interp_mode.name
         return ordered_dict
     
-    # @staticmethod
-    # def decode_json(json_obj):
+    @classmethod
+    def decode_json(cls, json_obj):
     #     # if '__type__' in json_obj and json_obj['__type__'] == View:
     #     return VideoView(View.get_json_field(json_obj, View.JSON_VIEW_ID, 'id'),
     #                      View.get_json_array(json_obj, View.JSON_VEC_UP, numpy.array([0, 1, 0])),
@@ -381,6 +397,17 @@ class VideoView(View):
     #                      View.get_json_array(json_obj, View.JSON_TRANSLATION, numpy.array([0, 0, 0])),
     #                      View.get_json_field(json_obj, View.JSON_ZOOM, 1),
     #                      View.get_json_field(json_obj, VideoView.JSON_DURATION, 1))
+        layers = []
+        for key, val in json_obj.items():
+            if key.startswith("layer"):
+                layer_num = int(key.split("_")[0][5:])
+                while layer_num >= len(layers):
+                    layers.append(OrderedDict())
+                layers[layer_num]["_".join(key.split("_")[1:])] = val
+                json_obj.pop(key)
+
+        json_obj["layers"] = layers
+        return cls(**json_obj)
 
 
 if __name__ == '__main__':
